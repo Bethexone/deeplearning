@@ -65,3 +65,21 @@ def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
     if legend:
         axes.legend(legend)
     axes.grid()
+
+def image_show(images, num_rows, num_cols, titles=None, scale=1.5):
+    """Plot a list of images"""
+    figsize = (num_cols * scale, num_rows * scale)
+    figs, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    axes = axes.flatten()
+    for i, (ax, img) in enumerate(zip(axes, images)):
+        if torch.is_tensor(img):
+            # 图片张量s
+            ax.imshow(img.numpy())
+        else:
+            # PIL 图片
+            ax.imshow(img)
+        if titles:
+            ax.set_title(titles[i])
+        ax.axis('off')
+    plt.subplots_adjust(wspace=0.3, hspace=0.1)
+    return axes

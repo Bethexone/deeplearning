@@ -1,28 +1,40 @@
+import torch
+from IPython import display
+from matplotlib import pyplot as plt
+from matplotlib_inline import backend_inline
+
+
 class Accumulator:
-    def __init__(self,n):
+    def __init__(self, n):
         self.data = [0.0] * n
-    def add(self,*args):
-        self.data = [a + float(b) for a,b in zip(self.data,args)]
+
+    def add(self, *args):
+        self.data = [a + float(b) for a, b in zip(self.data, args)]
+
     def reset(self):
         self.data = [0.0] * len(self.data)
-    def __getitem__(self,idx):
+
+    def __getitem__(self, idx):
         return self.data[idx]
 
+
 class Animator:
-    def __init__(self,xlabel=None,ylabel=None,legend=None,xlim=None,ylim=None,xscale='linear',yscale='linear',fmts=('-','m--','g-.','r:'),nrows=1,ncols=1,figsize=(3.5,2.5)):
+    def __init__(self, xlabel=None, ylabel=None, legend=None, xlim=None, ylim=None, xscale='linear', yscale='linear',
+                 fmts=('-', 'm--', 'g-.', 'r:'), nrows=1, ncols=1, figsize=(3.5, 2.5)):
         if legend is None:
             legend = []
         backend_inline.set_matplotlib_formats('svg')
-        self.fig,self.axes = plt.subplot(nrows,ncols,figsize=figsize)
+        self.fig, self.axes = plt.subplots(nrows, ncols, figsize=figsize)
         if nrows * ncols == 1:
             self.axes = [self.axes, ]
-        self.config_axes = lambda:set_axes(self.axes[0],xlabel,ylabel,xlim,ylim,xscale,yscale,legend)
-        self.X,self.Y,self.fmts = None,None,fmts
-    def add(self,x,y):
+        self.config_axes = lambda:set_axes(self.axes[0], xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
+        self.X, self.Y, self.fmts = None, None, fmts
+
+    def add(self, x, y):
         # 向图表中添加数据点
-        if not hasattr(y,"__len__"):
+        if not hasattr(y, "__len__"):
             y = [y]
-        n =len(y)
+        n = len(y)
         if not hasattr(x, "__len__"):
             x = [x] * n
         if not self.X:
@@ -40,28 +52,10 @@ class Animator:
         display.display(self.fig)
         display.clear_output(wait=True)
 
-def train_epoch_ch3(net,train_iter,loss,Optimizer):
-    if isinstance(net,torch.nn.Module):
-        net.train()
-    metric = Accumulator(3)
-    for X,y in train_iter:
-        y_hat = net(X)
-        l = loss(y_hat,y)
-        if isinstance(Optimizer,torch.optim.Optimizer):
-            update.zero_grad()
-            l.backward()
-            updater.step()
-            metric.add(float(l)*len(y),accuracy(y_hat,y),y.numel())
-        else:
-            l.sum.backward()
-            Optimizer(X.shape[0])
-            metric.add(float(l.sum()),accuracy(y_hat,y),y.numel())
-    return metric[0] /metric[2],metric[1]/metric[2]
-
 def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
     """设置matplotlib的轴
-
     Defined in :numref:`sec_calculus`"""
+  
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     axes.set_xscale(xscale)
@@ -71,3 +65,21 @@ def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
     if legend:
         axes.legend(legend)
     axes.grid()
+
+def image_show(images, num_rows, num_cols, titles=None, scale=1.5):
+    """Plot a list of images"""
+    figsize = (num_cols * scale, num_rows * scale)
+    figs, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    axes = axes.flatten()
+    for i, (ax, img) in enumerate(zip(axes, images)):
+        if torch.is_tensor(img):
+            # 图片张量s
+            ax.imshow(img.numpy())
+        else:
+            # PIL 图片
+            ax.imshow(img)
+        if titles:
+            ax.set_title(titles[i])
+        ax.axis('off')
+    plt.subplots_adjust(wspace=0.3, hspace=0.1)
+    return axes
