@@ -83,3 +83,10 @@ def image_show(images, num_rows, num_cols, titles=None, scale=1.5):
         ax.axis('off')
     plt.subplots_adjust(wspace=0.3, hspace=0.1)
     return axes
+
+def synthetic_data(true_w,true_b,num_data):
+  mean,std = 0.0,1.0
+  x = torch.normal(mean,std,size=(num_data,len(true_w)))
+  y = torch.matmul(x,true_w)+true_b
+  y += torch.normal(0,0.01,y.shape)
+  return  x,y
