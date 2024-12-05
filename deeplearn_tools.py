@@ -2,7 +2,7 @@ import torch
 from IPython import display
 from matplotlib import pyplot as plt
 from matplotlib_inline import backend_inline
-
+import time
 
 class Accumulator:
     def __init__(self, n):
@@ -46,8 +46,10 @@ class Animator:
                 self.X[i].append(a)
                 self.Y[i].append(b)
         self.axes[0].cla()
-        for x, y, fmt in zip(self.X, self.Y, self.fmts):
-            self.axes[0].plot(x, y, fmt)
+        for X, Y, fmt in zip(self.X, self.Y, self.fmts):
+            X = [x.detach().cpu().numpy() if isinstance(x, torch.Tensor) else x for x in X ]
+            Y = [y.detach().cpu().numpy() if isinstance(y, torch.Tensor) else y for y in Y ]
+            self.axes[0].plot(X, Y, fmt)
         self.config_axes()
         display.display(self.fig)
         display.clear_output(wait=True)
@@ -85,8 +87,58 @@ def image_show(images, num_rows, num_cols, titles=None, scale=1.5):
     return axes
 
 def synthetic_data(true_w,true_b,num_data):
-  mean,std = 0.0,1.0
-  x = torch.normal(mean,std,size=(num_data,len(true_w)))
-  y = torch.matmul(x,true_w)+true_b
-  y += torch.normal(0,0.01,y.shape)
-  return  x,y
+    mean,std = 0.0,1.0
+    x = torch.normal(mean,std,size=(num_data,len(true_w)))
+    y = torch.matmul(x,true_w)+true_b
+    y += torch.normal(0,0.01,y.shape)
+    return  x,y
+
+def evaluate_accuracy(net,data_iter,device='cpu'):
+    """计算在指定数据集的精度"""
+    if isinstance(net,torch.nn.Module):
+        # 评估模式，不会计算梯度
+        net.eval()
+        device = next(iter(net.parameters())).device
+    metric = Accumulator(2)
+    for X,y in data_iter:
+      if isinstance(X,list):
+        X = [x.to(device) for x in X]
+      else:
+        X = X.to(device)
+      y = y.to(device)
+      metric.add(accuracy(net(X),y),y.numel())
+    return metric[0]/metric[1]
+
+def accuracy(y_hat,y):
+    y_hat = y_hat.argmax(dim=1)
+    cmp = y_hat.type(y.dtype) == y.reshape(y_hat.shape)
+    return float(cmp.sum())
+
+class Timer:
+    """记录多次运行时间"""
+    def __init__(self):
+        """Defined in :numref:`subsec_linear_model`"""
+        self.times = []
+        self.start()
+
+    def start(self):
+        """启动计时器"""
+        self.tik = time.time()
+
+    def stop(self):
+        """停止计时器并将时间记录在列表中"""
+        self.times.append(time.time() - self.tik)
+        return self.times[-1]
+
+    def avg(self):
+        """返回平均时间"""
+        return sum(self.times) / len(self.times)
+
+    def sum(self):
+        """返回时间总和"""
+        return sum(self.times)
+
+    def cumsum(self):
+        """返回累计时间"""
+        return np.array(self.times).cumsum().tolist()
+

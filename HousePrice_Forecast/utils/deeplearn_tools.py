@@ -2,8 +2,7 @@ import torch
 from IPython import display
 from matplotlib import pyplot as plt
 from matplotlib_inline import backend_inline
-import time
-import torch.nn as nn
+
 
 class Accumulator:
     def __init__(self, n):
@@ -52,8 +51,12 @@ class Animator:
             Y = [y.detach().cpu().numpy() if isinstance(y, torch.Tensor) else y for y in Y ]
             self.axes[0].plot(X, Y, fmt)
         self.config_axes()
+
         display.display(self.fig)
         display.clear_output(wait=True)
+        # Show the plot (this is the part that was changed)
+        # plt.draw()  # Redraw the current figure
+        # plt.pause(0.01)  # Pause to allow the plot to update
 
 def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
     """设置matplotlib的轴
@@ -142,29 +145,3 @@ class Timer:
     def cumsum(self):
         """返回累计时间"""
         return np.array(self.times).cumsum().tolist()
-
-def train(train_loader,test_loader,net,num_epoches,loss_fn,optimizer,device="cuda"):
-    def init_weights(layer):
-        if type(layer)== nn.Linear or type(layer) == nn.Conv2d:
-            nn.init.xavier_uniform_(layer.weight)
-    net.apply(init_weights)
-    net.to(device)
-    data_dis = Animator(xlabel='num_epoch',xlim=[1,num_epoches],legend=['train_loss','train_accuracy','test_accuracy'],yscale='log')
-    timer = Timer()
-    for epoch in range(num_epoches):
-        l_sum = 0
-        timer.start()
-        for X,y in train_loader:
-            X,y = X.to(device),y.to(device)
-            optimizer.zero_grad()
-            y_hat = alexnet(X)
-            l = loss_fn(y_hat,y)
-            l.backward()
-            optimizer.step()
-            l_sum += l
-        epoch_time = timer.stop()
-        train_acc = evaluate_accuracy(net,train_loader,device)
-        test_acc = evaluate_accuracy(net,test_loader,device)
-        print(f"{epoch}:train loss,{l_sum:.2f},train_acc:{train_acc},test_acc:{test_acc},time:{epoch_time:.4f}s")
-        data_dis.add(epoch+1,[l_sum,train_acc,test_acc])
-
